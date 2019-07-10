@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+ublcii/bots/botssys/logging/
+ublcii/bots/botssys/data/
