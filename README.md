@@ -19,7 +19,8 @@ cii2ubl Input-Invoice-CII-D16B.xml Output-Invoice-UBL.xml
 ```
 
 ## Authors
-Ludovic Watteaux
+Ludovic Watteaux : development
+Claude Charmot : specifications
 
 
 ## Support
