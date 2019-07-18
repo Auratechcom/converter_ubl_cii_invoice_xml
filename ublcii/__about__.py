@@ -11,7 +11,7 @@ __all__ = [
 __title__ = 'ublcii'
 __summary__ = 'Translate Invoice UBL 2.1 to/from CrossIndustryInvoice (CII) D16B'
 
-__url__ = 'https://converter-cii-ubl-invoice-xml.sourceforge.io'
+__url__ = 'https://converter-ubl-cii-invoice-xml.sourceforge.io'
 
 __version_info__ = (1, 0, '0rc4')
 __version__ = '.'.join(map(str, __version_info__))

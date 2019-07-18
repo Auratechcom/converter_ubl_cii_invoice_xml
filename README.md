@@ -25,8 +25,8 @@ Claude Charmot : specifications
 
 ## Support
 
-https://converter-cii-ubl-invoice-xml.sourceforge.io
+https://sourceforge.net/projects/converter-ubl-cii-invoice-xml/support
 
 
 ## Changelog
-* v1.0.0 : 2019-07-10 First release
+* v1.0.0 : 2019-07-18 First release on pypi
