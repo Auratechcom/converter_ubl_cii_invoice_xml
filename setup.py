@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
+"""Setup for converter ubl <> cii invoice xml (ublcii)"""
 
-"""Setup for ubl <> cii translators
-
-"""
 import os
 import setuptools
 
@@ -12,8 +10,9 @@ about = {}
 with open(os.path.join(setup_dir, 'ublcii', '__about__.py')) as f:
     exec(f.read(), about)
 
-long_description = """Two way translator: Invoice UBL 2.1 <> Cross Invoice Industry D16B
-"""
+with open(os.path.join(setup_dir, 'README.md')) as md:
+    long_description = md.read()
+
 
 install_requires = [
     'setuptools',
@@ -27,8 +26,11 @@ classifiers = [
     'Programming Language :: Python',
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
     'Programming Language :: Python :: 3.4',
     'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Programming Language :: Python :: 3.7',
     'Programming Language :: Python :: Implementation :: CPython',
     'Programming Language :: Python :: Implementation :: PyPy',
     'License :: OSI Approved :: GNU General Public License (GPL)',
@@ -48,6 +50,7 @@ setuptools.setup(
     author=about['__author__'],
     author_email=about['__email__'],
     long_description=long_description,
+    long_description_content_type='text/markdown',
     platforms='OS Independent (Written in an interpreted language)',
     license=about['__license__'],
     keywords='edi xml invoice ubl 2.1 CII CrossIndustryInvoice D16B',
