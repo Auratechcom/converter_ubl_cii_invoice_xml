@@ -29,4 +29,5 @@ https://sourceforge.net/projects/converter-ubl-cii-invoice-xml/support
 
 
 ## Changelog
-* v1.0.0 : 2019-07-18 First release on pypi
+* v1.0.1 : 2019-07-19 - Packaging infos updates
+* v1.0.0 : 2019-07-18 - First release on pypi
