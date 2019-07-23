@@ -880,14 +880,6 @@ def main(inn, out):
 
             specifiedtradeallowancecharge2 = includedsupplychaintradelineitem.putloop({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeSettlement'}, {'BOTSID': ram+'SpecifiedTradeAllowanceCharge'})
 
-            # -/Invoice /InvoiceLine /AllowanceCharge /AllowanceChargeReason
-            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /Reason
-            specifiedtradeallowancecharge2.put({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'Reason', 'BOTSCONTENT': allowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'AllowanceChargeReason', 'BOTSCONTENT': None})})
-
-            # -/Invoice /InvoiceLine /AllowanceCharge /AllowanceChargeReasonCode
-            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /ReasonCode
-            specifiedtradeallowancecharge2.put({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'ReasonCode', 'BOTSCONTENT': allowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'AllowanceChargeReasonCode', 'BOTSCONTENT': None})})
-
             # -/Invoice /InvoiceLine /AllowanceCharge /Amount
             # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /ActualAmount
             specifiedtradeallowancecharge2.put({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'ActualAmount', 'BOTSCONTENT': allowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'Amount', 'BOTSCONTENT': None})})
@@ -920,6 +912,18 @@ def main(inn, out):
                 # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /CategoryTradeTax /RateApplicablePercent
                 categorytradetax2.put({'BOTSID': ram+'CategoryTradeTax'}, {'BOTSID': ram+'RateApplicablePercent', 'BOTSCONTENT': taxcategory.get({'BOTSID': cac+'TaxCategory'}, {'BOTSID': cbc+'Percent', 'BOTSCONTENT': None})})
 
+            # -/Invoice /InvoiceLine /AllowanceCharge /ChargeIndicator
+            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /ChargeIndicator /IndicatorString
+            specifiedtradeallowancecharge2.put({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'ChargeIndicator'}, {'BOTSID': udt+'IndicatorString', 'BOTSCONTENT': allowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': None})})
+
+            # -/Invoice /InvoiceLine /AllowanceCharge /AllowanceChargeReason
+            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /Reason
+            specifiedtradeallowancecharge2.put({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'Reason', 'BOTSCONTENT': allowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'AllowanceChargeReason', 'BOTSCONTENT': None})})
+
+            # -/Invoice /InvoiceLine /AllowanceCharge /AllowanceChargeReasonCode
+            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /ReasonCode
+            specifiedtradeallowancecharge2.put({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'ReasonCode', 'BOTSCONTENT': allowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'AllowanceChargeReasonCode', 'BOTSCONTENT': None})})
+
         if invoiceline.get({'BOTSID': cac+'InvoiceLine'}, {'BOTSID': cac+'Price'}, {'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'BaseAmount', 'BOTSCONTENT': None}):
 
             grosspriceproducttradeprice = includedsupplychaintradelineitem.putloop({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'GrossPriceProductTradePrice'})
@@ -940,10 +944,6 @@ def main(inn, out):
             # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /BasisQuantity /BasisQuantity__unitCode
             grosspriceproducttradeprice.put({'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'BasisQuantity', ram+'BasisQuantity__unitCode': invoiceline.get({'BOTSID': cac+'InvoiceLine'}, {'BOTSID': cac+'Price'}, {'BOTSID': cbc+'BaseQuantity', cbc+'BaseQuantity__unitCode': None})})
 
-            # -/Invoice /InvoiceLine /AllowanceCharge /ChargeIndicator
-            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /AppliedTradeAllowanceCharge /ChargeIndicator /IndicatorString
-            grosspriceproducttradeprice.put({'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'AppliedTradeAllowanceCharge'}, {'BOTSID': ram+'ChargeIndicator'}, {'BOTSID': udt+'IndicatorString', 'BOTSCONTENT': invoiceline.get({'BOTSID': cac+'InvoiceLine'}, {'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': None})})
-
             for priceallowancecharge in invoiceline.getloop({'BOTSID': xmlns+'InvoiceLine'}, {'BOTSID': xmlns+'Price'}, {'BOTSID': cac+'AllowanceCharge'}):
 
                 appliedtradeallowancecharge = grosspriceproducttradeprice.putloop({'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'AppliedTradeAllowanceCharge'})
@@ -955,6 +955,10 @@ def main(inn, out):
                 # -/Invoice /InvoiceLine /Price /AllowanceCharge /Amount /Amount__currencyID
                 # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /AppliedTradeAllowanceCharge /ActualAmount /ActualAmount__currencyID
                 appliedtradeallowancecharge.put({'BOTSID': ram+'AppliedTradeAllowanceCharge'}, {'BOTSID': ram+'ActualAmount', ram+'ActualAmount__currencyID': priceallowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'Amount', cbc+'Amount__currencyID': None})})
+
+                # -/Invoice /InvoiceLine /Price /AllowanceCharge /ChargeIndicator
+                # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /AppliedTradeAllowanceCharge /ChargeIndicator /IndicatorString
+                appliedtradeallowancecharge.put({'BOTSID': ram+'AppliedTradeAllowanceCharge'}, {'BOTSID': ram+'ChargeIndicator'}, {'BOTSID': udt+'IndicatorString', 'BOTSCONTENT': priceallowancecharge.get({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': None})})
 
         for additionalitemproperty in invoiceline.getloop({'BOTSID': cac+'InvoiceLine'}, {'BOTSID': cac+'Item'}, {'BOTSID': cac+'AdditionalItemProperty'}):
 

@@ -29,5 +29,11 @@ https://sourceforge.net/projects/converter-ubl-cii-invoice-xml/support
 
 
 ## Changelog
+* v1.0.2 : 2019-07-23 - Fixes and Updates
+	* Map field /Invoice/InvoiceLine/AllowanceCharge/ChargeIndicator
+	* Set default mandatory field ChargeIndicator to 'false'
+	* Fix /Invoice/PaymentMeans
+	* Fix /Invoice/InvoiceLine/Price/AllowanceCharge/BaseAmount
+
 * v1.0.1 : 2019-07-19 - Packaging infos updates
 * v1.0.0 : 2019-07-18 - First release on pypi

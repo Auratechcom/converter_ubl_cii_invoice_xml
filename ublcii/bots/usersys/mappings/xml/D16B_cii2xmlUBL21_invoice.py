@@ -603,10 +603,6 @@ def main(inn, out):
     # +/Invoice /InvoicePeriod /StartDate
     out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'InvoicePeriod'}, {'BOTSID': cbc+'StartDate', 'BOTSCONTENT': transformdate(inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeSettlement'}, {'BOTSID': ram+'BillingSpecifiedPeriod'}, {'BOTSID': ram+'StartDateTime'}, {'BOTSID': udt+'DateTimeString', 'BOTSCONTENT': None}))})
 
-    # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /CreditorReferenceID
-    # +/Invoice /PaymentMeans /PaymentMandate /PayerFinancialAccount /ID
-    out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'PaymentMandate'}, {'BOTSID': cac+'PayerFinancialAccount'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeSettlement'}, {'BOTSID': ram+'CreditorReferenceID', 'BOTSCONTENT': None})})
-
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /InvoiceCurrencyCode
     # +/Invoice /DocumentCurrencyCode
     out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cbc+'DocumentCurrencyCode', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeSettlement'}, {'BOTSID': ram+'InvoiceCurrencyCode', 'BOTSCONTENT': None})})
@@ -784,6 +780,10 @@ def main(inn, out):
 
         paymentmeans = out.putloop({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'PaymentMeans'})
 
+        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /CreditorReferenceID
+        # +/Invoice /PaymentMeans /PaymentMandate /PayerFinancialAccount /ID
+        paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'PaymentMandate'}, {'BOTSID': cac+'PayerFinancialAccount'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeSettlement'}, {'BOTSID': ram+'CreditorReferenceID', 'BOTSCONTENT': None})})
+
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradePaymentTerms /DueDateDateTime /DateTimeString
         # +/Invoice /PaymentMeans /PaymentDueDate
         paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cbc+'PaymentDueDate', 'BOTSCONTENT': duedate})
@@ -808,6 +808,10 @@ def main(inn, out):
         # +/Invoice /PaymentMeans /CardAccount /PrimaryAccountNumberID
         paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'CardAccount'}, {'BOTSID': cbc+'PrimaryAccountNumberID', 'BOTSCONTENT': specifiedtradesettlementpaymentmeans.get({'BOTSID': ram+'SpecifiedTradeSettlementPaymentMeans'}, {'BOTSID': ram+'ApplicableTradeSettlementFinancialCard'}, {'BOTSID': ram+'ID', 'BOTSCONTENT': None})})
 
+        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /TypeCode
+        # +/Invoice /PaymentMeans /PaymentMeansCode
+        paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cbc+'PaymentMeansCode', 'BOTSCONTENT': specifiedtradesettlementpaymentmeans.get({'BOTSID': ram+'SpecifiedTradeSettlementPaymentMeans'}, {'BOTSID': ram+'TypeCode', 'BOTSCONTENT': None})})
+
         name = ''
         for information in specifiedtradesettlementpaymentmeans.getloop({'BOTSID': ram+'SpecifiedTradeSettlementPaymentMeans'}, {'BOTSID': ram+'Information'}):
             name += information.get({'BOTSID': ram+'Information', 'BOTSCONTENT': None})
@@ -815,10 +819,6 @@ def main(inn, out):
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /Information
         # +/Invoice /PaymentMeans /PaymentMeansCode /PaymentMeansCode__name
         paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cbc+'PaymentMeansCode', cbc+'PaymentMeansCode__name': name})
-
-        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /TypeCode
-        # +/Invoice /PaymentMeans /PaymentMeansCode
-        paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cbc+'PaymentMeansCode', 'BOTSCONTENT': specifiedtradesettlementpaymentmeans.get({'BOTSID': ram+'SpecifiedTradeSettlementPaymentMeans'}, {'BOTSID': ram+'TypeCode', 'BOTSCONTENT': None})})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /PayeePartyCreditorFinancialAccount /AccountName
         # +/Invoice /PaymentMeans /PayeeFinancialAccount /Name
@@ -875,8 +875,6 @@ def main(inn, out):
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /NetPriceProductTradePrice /ChargeAmount /ChargeAmount__currencyID
         # +/Invoice /InvoiceLine /Price /PriceAmount /PriceAmount__currencyID
         invoiceline.put({'BOTSID': cac+'InvoiceLine'}, {'BOTSID': cac+'Price'}, {'BOTSID': cbc+'PriceAmount', cbc+'PriceAmount__currencyID': includedsupplychaintradelineitem.get({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'NetPriceProductTradePrice'}, {'BOTSID': ram+'ChargeAmount', ram+'ChargeAmount__currencyID': None})})
-
-        # if includedsupplychaintradelineitem.get({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'AppliedTradeAllowanceCharge'}):
             
         for appliedtradeallowancecharge in includedsupplychaintradelineitem.getloop({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'AppliedTradeAllowanceCharge'}):
 
@@ -890,14 +888,13 @@ def main(inn, out):
             # +/Invoice /InvoiceLine /Price /AllowanceCharge /Amount /Amount__currencyID
             allowancecharge2.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'Amount', cbc+'Amount__currencyID': appliedtradeallowancecharge.get({'BOTSID': ram+'AppliedTradeAllowanceCharge'}, {'BOTSID': ram+'ActualAmount', ram+'ActualAmount__currencyID': None})})
 
-            # Fixed: 'False'
-            # +/Invoice /InvoiceLine /Price /AllowanceCharge /ChargeIndicator
-            allowancecharge2.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': 'False'})
+            # +/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /AppliedTradeAllowanceCharge /ChargeIndicator /IndicatorString
+            # -/Invoice /InvoiceLine /Price /AllowanceCharge /ChargeIndicator
+            allowancecharge2.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': appliedtradeallowancecharge.get({'BOTSID': ram+'AppliedTradeAllowanceCharge'}, {'BOTSID': ram+'ChargeIndicator'}, {'BOTSID': udt+'IndicatorString', 'BOTSCONTENT': None}) or 'false'})
 
-            # !!!!!
             # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /ChargeAmount
             # +/Invoice /InvoiceLine /Price /AllowanceCharge /BaseAmount
-            # allowancecharge2.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'BaseAmount', 'BOTSCONTENT': includedsupplychaintradelineitem.get({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'ChargeAmount', 'BOTSCONTENT': None})})
+            allowancecharge2.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'BaseAmount', 'BOTSCONTENT': includedsupplychaintradelineitem.get({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'ChargeAmount', 'BOTSCONTENT': None})})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeDelivery /BilledQuantity
         # +/Invoice /InvoiceLine /InvoicedQuantity
@@ -985,6 +982,10 @@ def main(inn, out):
                 # +/Invoice /InvoiceLine /AllowanceCharge /TaxCategory /Percent
                 taxcategory2.put({'BOTSID': cac+'TaxCategory'}, {'BOTSID': cbc+'Percent', 'BOTSCONTENT': categorytradetax2.get({'BOTSID': ram+'CategoryTradeTax'}, {'BOTSID': ram+'RateApplicablePercent', 'BOTSCONTENT': None})})
 
+            # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /ChargeIndicator /IndicatorString
+            # +/Invoice /InvoiceLine /AllowanceCharge /ChargeIndicator
+            allowancecharge3.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': specifiedtradeallowancecharge2.get({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'ChargeIndicator'}, {'BOTSID': udt+'IndicatorString', 'BOTSCONTENT': None}) or 'false'})
+
             # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /Reason
             # +/Invoice /InvoiceLine /AllowanceCharge /AllowanceChargeReason
             allowancecharge3.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'AllowanceChargeReason', 'BOTSCONTENT': specifiedtradeallowancecharge2.get({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'Reason', 'BOTSCONTENT': None})})
@@ -992,10 +993,6 @@ def main(inn, out):
             # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeAllowanceCharge /ReasonCode
             # +/Invoice /InvoiceLine /AllowanceCharge /AllowanceChargeReasonCode
             allowancecharge3.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'AllowanceChargeReasonCode', 'BOTSCONTENT': specifiedtradeallowancecharge2.get({'BOTSID': ram+'SpecifiedTradeAllowanceCharge'}, {'BOTSID': ram+'ReasonCode', 'BOTSCONTENT': None})})
-
-            # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeAgreement /GrossPriceProductTradePrice /AppliedTradeAllowanceCharge /ChargeIndicator /IndicatorString
-            # +/Invoice /InvoiceLine /AllowanceCharge /ChargeIndicator
-            allowancecharge3.put({'BOTSID': cac+'AllowanceCharge'}, {'BOTSID': cbc+'ChargeIndicator', 'BOTSCONTENT': includedsupplychaintradelineitem.get({'BOTSID': ram+'IncludedSupplyChainTradeLineItem'}, {'BOTSID': ram+'SpecifiedLineTradeAgreement'}, {'BOTSID': ram+'GrossPriceProductTradePrice'}, {'BOTSID': ram+'AppliedTradeAllowanceCharge'}, {'BOTSID': ram+'ChargeIndicator'}, {'BOTSID': udt+'IndicatorString', 'BOTSCONTENT': None})})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /IncludedSupplyChainTradeLineItem /SpecifiedLineTradeSettlement /SpecifiedTradeSettlementLineMonetarySummation /LineTotalAmount
         # +/Invoice /InvoiceLine /LineExtensionAmount
