@@ -6,7 +6,7 @@ Author: Ludovic Watteaux
 """
 from bots.botsconfig import ID, MIN, MAX, LEVEL, QUERIES
 
-from .D16Brecords import (version, rsm, qdt, udt, ram, recorddefs)
+from .D16Brecords import (version, rsm, qdt, udt, ram, xsi, recorddefs)
 from .D16Bsequences import sequence
 
 
@@ -18,11 +18,16 @@ syntax = {
     'qdt': qdt,
     'udt': udt,
     'ram': ram,
+    'xsi': xsi,
+    'schemaLocation': '%s %s' % (
+        rsm.strip('{}'),
+        'CrossIndustryInvoice_100pD16B.xsd'),
     'namespace_prefixes': [
         ('rsm', rsm.strip('{}')),
         ('qdt', qdt.strip('{}')),
         ('udt', udt.strip('{}')),
         ('ram', ram.strip('{}')),
+        ('xsi', xsi.strip('{}')),
     ],
 }
 

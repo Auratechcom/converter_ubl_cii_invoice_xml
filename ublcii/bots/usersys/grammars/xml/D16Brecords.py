@@ -2,6 +2,8 @@
 
 version = '100.D16B'
 
+xsi = '{http://www.w3.org/2001/XMLSchema-instance}'
+
 rsm = '{urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100}'
 qdt = '{urn:un:unece:uncefact:data:standard:QualifiedDataType:100}'
 udt = '{urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100}'
@@ -12,7 +14,9 @@ recorddefs = {
 rsm+'CrossIndustryInvoice':
     [
     ['BOTSID', 'M', 256, 'AN'],
+    [rsm+'CrossIndustryInvoice__xmlns:qdt', 'C', 256, 'AN'],
     [rsm+'CrossIndustryInvoice__xmlns:xsi', 'C', 256, 'AN'],
+    [rsm+'CrossIndustryInvoice__'+xsi+'schemaLocation', 'C', 256, 'AN'],
     ],
 rsm+'ExchangedDocument':
     [
@@ -945,7 +949,7 @@ ram+'ConsumptionReportReferencedDocument':
 ram+'Content':
     [
     ['BOTSID', 'M', 256, 'AN'],
-    ['BOTSCONTENT', 'M', 256, 'AN'],
+    ['BOTSCONTENT', 'M', 1024, 'AN'],
     [ram+'Content__languageLocaleID', 'C', 256, 'AN'],
     [ram+'Content__languageID', 'C', 256, 'AN'],
     ],

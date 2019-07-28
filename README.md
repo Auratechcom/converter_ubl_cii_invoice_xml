@@ -29,6 +29,12 @@ https://sourceforge.net/projects/converter-ubl-cii-invoice-xml/support
 
 
 ## Changelog
+* v1.0.3 : 2019-07-29 - Fixes and Updates
+	* [CII2UBL] Fixes for /Invoice/Delivery/DeliveryLocation/ID
+	* Add xml namespaces: qdt, udt, xsi, xsi:schemaLocation
+	* [CII2UBL] Map /IncludedNote/SubjectCode in begin of /Invoice/Note
+	* Increase xml D16B ram:Content len to 1024
+	* Set minimum occurance of UBL /Invoice/InvoiceLine to 0
 * v1.0.2 : 2019-07-23 - Fixes and Updates
 	* Map field /Invoice/InvoiceLine/AllowanceCharge/ChargeIndicator
 	* Set default mandatory field ChargeIndicator to 'false'

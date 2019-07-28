@@ -37,7 +37,8 @@ def main(inn, out):
     udt = out_syntax['udt']
     ram = out_syntax['ram']
 
-    out.put({'BOTSID': rsm+'CrossIndustryInvoice', rsm+'CrossIndustryInvoice__xmlns:xsi': 'http://www.w3.org/2001/XMLSchema-instance'})
+    out.put({'BOTSID': rsm+'CrossIndustryInvoice', rsm+'CrossIndustryInvoice__xmlns:qdt': out_syntax['qdt'].strip('{}')})
+    out.put({'BOTSID': rsm+'CrossIndustryInvoice', rsm+'CrossIndustryInvoice__xmlns:xsi': out_syntax['xsi'].strip('{}')})
 
     # -/Invoice /ID
     # +/CrossIndustryInvoice /ExchangedDocument /ID
@@ -463,8 +464,6 @@ def main(inn, out):
     applicableheadertradedelivery.put({'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ReceivingAdviceReferencedDocument'}, {'BOTSID': ram+'IssuerAssignedID', 'BOTSCONTENT': inn.get({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'ReceiptDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': None})})
 
     for delivery in inn.getloop({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'Delivery'}):
-
-        # globalid3 = out.putloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ShipToTradeParty'}, {'BOTSID': ram+'GlobalID'})
 
         # -/Invoice /Delivery /DeliveryLocation /ID
         deliverylocid = delivery.get({'BOTSID': cac+'Delivery'}, {'BOTSID': cac+'DeliveryLocation'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': None})

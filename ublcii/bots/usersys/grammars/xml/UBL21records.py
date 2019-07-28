@@ -2,11 +2,15 @@
 
 version = '2.1'
 
+xsi = '{http://www.w3.org/2001/XMLSchema-instance}'
+
 xmlns = '{urn:oasis:names:specification:ubl:schema:xsd:Invoice-2}'
-ext = '{urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2}'
-cbc = '{urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2}'
 cac = '{urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2}'
+cbc = '{urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2}'
 ccts = '{urn:un:unece:uncefact:documentation:2}'
+ext = '{urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2}'
+qdt = '{urn:oasis:names:specification:ubl:schema:xsd:QualifiedDatatypes-2}'
+udt = '{urn:oasis:names:specification:ubl:schema:xsd:UnqualifiedDataTypes-2}'
 
 
 recorddefs = {
@@ -5899,6 +5903,11 @@ ext+'UBLExtensions':
 xmlns+'Invoice':
     [
     ['BOTSID', 'M', 256, 'AN'],
+    [xmlns+'Invoice__xmlns:qdt', 'C', 256, 'AN'],
+    [xmlns+'Invoice__xmlns:udt', 'C', 256, 'AN'],
+    [xmlns+'Invoice__xmlns:ccts', 'C', 256, 'AN'],
+    [xmlns+'Invoice__xmlns:xsi', 'C', 256, 'AN'],
+    [xmlns+'Invoice__'+xsi+'schemaLocation', 'C', 256, 'AN'],
     ],
 xmlns+'CategoryCode':
     [

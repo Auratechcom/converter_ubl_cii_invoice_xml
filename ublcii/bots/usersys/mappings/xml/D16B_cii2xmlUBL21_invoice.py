@@ -38,6 +38,12 @@ def main(inn, out):
     xmlns = out_syntax['xmlns']
     cbc = out_syntax['cbc']
     cac = out_syntax['cac']
+    xsi = out_syntax['xsi']
+
+    out.put({'BOTSID': xmlns+'Invoice', xmlns+'Invoice__xmlns:ccts': out_syntax['ccts'].strip('{}')})
+    out.put({'BOTSID': xmlns+'Invoice', xmlns+'Invoice__xmlns:qdt': out_syntax['qdt'].strip('{}')})
+    out.put({'BOTSID': xmlns+'Invoice', xmlns+'Invoice__xmlns:udt': out_syntax['udt'].strip('{}')})
+    out.put({'BOTSID': xmlns+'Invoice', xmlns+'Invoice__'+xsi+'schemaLocation': out_syntax['schemaLocation']})
 
     # +/Invoice /UBLVersionID
     out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cbc+'UBLVersionID', 'BOTSCONTENT': out_syntax['reference']})
@@ -53,13 +59,17 @@ def main(inn, out):
 
     for includednote in inn.getloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'ExchangedDocument'}, {'BOTSID': ram+'IncludedNote'}):
 
+        subjectcode = includednote.get({'BOTSID': ram+'IncludedNote'}, {'BOTSID': ram+'SubjectCode', 'BOTSCONTENT': None}) or ''
+        if subjectcode:
+            subjectcode = '%s: ' % subjectcode
+
         for content in includednote.getloop({'BOTSID': ram+'IncludedNote'}, {'BOTSID': ram+'Content'}):
 
             note = out.putloop({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cbc+'Note'})
 
             # -/CrossIndustryInvoice /ExchangedDocument /IncludedNote /Content
             # +/Invoice /Note
-            note.put({'BOTSID': cbc+'Note', 'BOTSCONTENT': content.get({'BOTSID': ram+'Content', 'BOTSCONTENT': None})})
+            note.put({'BOTSID': cbc+'Note', 'BOTSCONTENT': '%s%s' % (subjectcode, content.get({'BOTSID': ram+'Content', 'BOTSCONTENT': None}))})
 
     # -/CrossIndustryInvoice /ExchangedDocument /IssueDateTime /DateTimeString
     # +/Invoice /IssueDate
@@ -100,10 +110,6 @@ def main(inn, out):
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /URIID
         # +/Invoice /AdditionalDocumentReference /Attachment /ExternalReference /URI
         additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cac+'Attachment'}, {'BOTSID': cac+'ExternalReference'}, {'BOTSID': cbc+'URI', 'BOTSCONTENT': additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'URIID', 'BOTSCONTENT': None})})
-
-    # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /BuyerOrderReferencedDocument /IssuerAssignedID
-    # +/Invoice /ContractDocumentReference /ID
-    # out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'ContractDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'BuyerOrderReferencedDocument'}, {'BOTSID': ram+'IssuerAssignedID', 'BOTSCONTENT': None})})
 
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /BuyerOrderReferencedDocument /IssuerAssignedID
     # +/Invoice /OrderReference /ID
@@ -473,25 +479,13 @@ def main(inn, out):
     # +/Invoice /ReceiptDocumentReference /ID
     out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'ReceiptDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ReceivingAdviceReferencedDocument'}, {'BOTSID': ram+'IssuerAssignedID', 'BOTSCONTENT': None})})
 
-    for globalid3 in inn.getloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ShipToTradeParty'}, {'BOTSID': ram+'GlobalID'}):
+    # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ShipToTradeParty /ID
+    # +/Invoice /Delivery /DeliveryLocation /ID
+    out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'Delivery'}, {'BOTSID': cac+'DeliveryLocation'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ShipToTradeParty'}, {'BOTSID': ram+'ID', 'BOTSCONTENT': None})})
 
-        delivery = out.putloop({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'Delivery'})
-
-        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ShipToTradeParty /GlobalID /GlobalID__schemeID
-        # +/Invoice /Delivery /DeliveryLocation /ID /ID__schemeID
-        delivery.put({'BOTSID': cac+'Delivery'}, {'BOTSID': cac+'DeliveryLocation'}, {'BOTSID': cbc+'ID', cbc+'ID__schemeID': globalid3.get({'BOTSID': ram+'GlobalID', ram+'GlobalID__schemeID': None})})
-
-    for id3 in inn.getloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ShipToTradeParty'}, {'BOTSID': ram+'ID'}):
-
-        delivery = out.putloop({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'Delivery'})
-
-        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ShipToTradeParty /ID
-        # +/Invoice /Delivery /DeliveryLocation /ID
-        delivery.put({'BOTSID': cac+'Delivery'}, {'BOTSID': cac+'DeliveryLocation'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': id3.get({'BOTSID': ram+'ID', 'BOTSCONTENT': None})})
-
-        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ShipToTradeParty /ID /ID__schemeID
-        # +/Invoice /Delivery /DeliveryLocation /ID /ID__schemeID
-        delivery.put({'BOTSID': cac+'Delivery'}, {'BOTSID': cac+'DeliveryLocation'}, {'BOTSID': cbc+'ID', cbc+'ID__schemeID': id3.get({'BOTSID': ram+'ID', ram+'ID__schemeID': None})})
+    # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ShipToTradeParty /ID /ID__schemeID
+    # +/Invoice /Delivery /DeliveryLocation /ID /ID__schemeID
+    out.put({'BOTSID': xmlns+'Invoice'}, {'BOTSID': cac+'Delivery'}, {'BOTSID': cac+'DeliveryLocation'}, {'BOTSID': cbc+'ID', cbc+'ID__schemeID': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ShipToTradeParty'}, {'BOTSID': ram+'ID', ram+'ID__schemeID': None})})
 
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ShipToTradeParty /Name
     # +/Invoice /Delivery /DeliveryLocation /Description
