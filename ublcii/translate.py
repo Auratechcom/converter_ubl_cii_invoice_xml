@@ -1,10 +1,19 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import errno
+import logging
 import os
+import shutil
 import subprocess
 import sys
+import tempfile
 import traceback
+try:
+    from xml.etree import cElementTree as etree
+except ImportError:
+    from xml.etree import ElementTree as etree
+
 from bots import botsinit
 try:
     import bots.config_ublcii
@@ -12,105 +21,327 @@ except ImportError:
     from . import egg_install
     egg_install()
 
-from . import start_logging, log, error, fatalerror
+from . import start_logging, info, logger, error, fatalerror, __path__, __about__
 
 
-def start(route, prog):
-    """Start translating"""
+STDOUT = STDERR = subprocess.PIPE
+VERBOSE = DEBUG = False
+VALIDATION_PATH = os.path.join(__path__[0], 'validation', 'eInvoicing-EN16931')
+
+
+def popen(pargs):
+    """Open a subprocess"""
+    try:
+        proc = subprocess.Popen(pargs, stdout=STDOUT, stderr=STDERR)
+        stdoutdata, stderrdata = proc.communicate()
+        if stdoutdata:
+            if not isinstance(stdoutdata, str):
+                stdoutdata = stdoutdata.decode()
+            info(stdoutdata)
+        if stderrdata and (VERBOSE or proc.returncode != 0):
+            if not isinstance(stderrdata, str):
+                stderrdata = stderrdata.decode()
+            info(stderrdata)
+        return proc.returncode
+
+    except Exception:
+        error(traceback.format_exc())
+
+
+def is_java_installed():
+    """Look at java binary in system PATH
+    return: boolean
+    """
+    for path in os.environ['PATH'].split(':'):
+        for prog in os.listdir(path):
+            if prog in ['java', 'java.exe']:
+                return True
+    return False
+
+
+def saxon_transform(filename, xslt, outfile, **kwargs):
+    """Apply a xlst transformation to a xml file thru java and Saxon-HE.jar library"""
+    if not is_java_installed():
+        error('java binary not found in system path !')
+        fatalerror('Please install java first.')
+    saxon_he_jar = os.path.join(__path__[0], 'java', 'Saxon-HE.jar')
+    if not saxon_he_jar or not os.path.isfile(saxon_he_jar):
+        error('Saxon-HE.jar not found, skiping.')
+        return None
+    if not os.path.isfile(filename):
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
+    pargs = [
+        'java', '-cp', saxon_he_jar, 'net.sf.saxon.Transform',
+        '-t', '-s:%s' % filename, '-xsl:%s' % xslt, '-o:%s' % outfile,
+    ]
+    return popen(pargs)
+
+
+def build_validation_report(invoicetype, filename, outfile=None):
+    """Generate invoice validation report"""
+    if invoicetype not in ['ubl', 'cii']:
+        raise Exception('Invalid invoice type: %s' % invoicetype)
+    if not outfile:
+        outfile = '%s.report.xml' % filename
+    xslt = os.path.join(
+        VALIDATION_PATH, invoicetype, 'xslt', 'EN16931-%s-validation.xslt' % invoicetype.upper())
+    ret = saxon_transform(filename, xslt, outfile)
+    if ret == 0:
+        logger.debug("Invoice %s validation report created: '%s'" % (invoicetype.upper(), outfile))
+        return outfile
+    fatalerror("durring validation report creation")
+
+
+def parse_validation_report(validation_report):
+    """Parse errors in xml <svrl:schematron-output> files.
+    :return boolean
+    """
+    doc = etree.parse(validation_report)
+    namespaces = {'svrl': 'http://purl.oclc.org/dsdl/svrl'}
+    active_patern = doc.find(".//svrl:active-pattern", namespaces)
+    document = active_patern.attrib.get('document')
+    filename = document.split('file:')[1]
+    invoicetype = active_patern.attrib.get('id', '').split('-')[-2]
+
+    fired_rules = doc.findall(".//svrl:fired-rule", namespaces)
+    failed_asserts = doc.findall(".//svrl:failed-assert", namespaces)
+    infos = '%4s fired rules' % (len(fired_rules) + len(failed_asserts))
+    warnings_asserts = []
+    fatal_asserts = []
+    if failed_asserts:
+        for elem in failed_asserts:
+            flag = elem.attrib['flag'].strip()
+            txt = ''
+            for child in elem:
+                txt += child.text
+            err = '(%s) %s validation [%s]\n' % (flag, invoicetype, elem.attrib['id'])
+            err += '%s error: %s\n' % (invoicetype, txt)
+            err += 'test     : %s\nlocation : %s\n' % (elem.attrib['test'], elem.attrib['location'])
+            if flag == 'warning':
+                warnings_asserts.append(elem)
+                logger.warning(err)
+            elif flag == 'fatal':
+                fatal_asserts.append(elem)
+                error(err)
+            else:
+                error(err)
+        # info('%s failed assertions' % len(failed_asserts))
+        if warnings_asserts:
+            logger.warning('%4s warning assertions', len(warnings_asserts))
+        if fatal_asserts:
+            error('%4s fatal assertions' % len(fatal_asserts))
+            info(infos)
+            error("Invalid %s invoice document: '%s'" % (invoicetype, os.path.basename(filename)))
+            return False
+    info(infos)
+    info("Valid %s invoice document: '%s'" % (invoicetype, os.path.basename(filename)))
+    return True
+
+
+def mvn_validate(invoicetype, filename):
+    """validate cii/ubl invoice file with maven"""
+    os.environ["VALIDATION_PATH"] = VALIDATION_PATH
+    if invoicetype not in ['ubl', 'cii']:
+        raise Exception('Invalid invoice type: %s' % invoicetype)
+
+    info("Validating %s file: '%s'" % (invoicetype.upper(), os.path.basename(filename)))
+    logger.debug('%s file path: %s', invoicetype.upper(), filename)
+    validation_dir = tempfile.mkdtemp('', 'validation')
+    os.environ["VALIDATION_DIR"] = validation_dir
+
+    # Copy file to validate
+    shutil.copyfile(filename, os.path.join(validation_dir, os.path.basename(filename)))
+
+    pom_file = os.path.join(__path__[0], 'validation', 'pom-validate-%s.xml' % invoicetype)
+    pargs = ['mvn', '-f', pom_file, 'validate']
+    returncode = popen(pargs)
+    if returncode == 0:
+        info("Valid %s invoice document: '%s'" % (invoicetype.upper(), os.path.basename(filename)))
+    else:
+        error("Invalid %s invoice document: '%s'" % (invoicetype.upper(), os.path.basename(filename)))
+
+    shutil.rmtree(validation_dir)
+    return returncode
+
+
+def start(route, prog, *args):
+    """Start translation/validation of ubl/cii invoice"""
 
     start_logging()
     usage = """
-Usage:
-    %(prog)s input.xml output.xml
+%(prog)s v%(version)s
 
-    -r          Replace output file if exist
+Usage: %(prog)s [options] input_%(intype)s.xml output_%(outtype)s.xml
 
-    input:      Input file to transtate
-    output:     Output translated file path
+    -R|--replace Replace output file if exist
+
+    -r|--report  Build invoice validation report <filename>.report.xml
+
+    -v|--validate
+                 Do validation of input %(intype)s and output %(outtype)s translated.
+                 (A valid installation of java is requiered.)
+
+    --version    return version information and exit
+
+    input:       Input %(intype)s file path to transtate
+    output:      Output translated %(outtype)s file path
+
+Author: %(author)s\
 """
 
-    intype, outtype = prog.upper().split('2')
+    intype, outtype = prog.split('2')
     usage %= {
         'prog': prog,
+        'intype': intype.upper(),
+        'outtype': outtype.upper(),
+        'version': __about__.__version__,
+        'author': __about__.__author__,
     }
 
     infile = outfile = None
     replaceexisting = False
-    verbose = False
-    stdout = stderr = subprocess.PIPE
-    for arg in sys.argv[1:]:
-        if arg in ['-r', '--replace']:
+    do_validation = False
+    build_report = False
+    config_dir = 'config_ublcii'
+    if not args:
+        args = sys.argv[1:]
+    for arg in args:
+        if arg in ['-R', '--replace']:
             replaceexisting = True
-        elif arg == '-v':
-            verbose = True
+        elif arg == '-D':
+            globals()['DEBUG'] = True
+            logger.setLevel(logging.DEBUG)
+        elif arg == '--version':
+            sys.stdout.write('%s %s%s' % (prog, __about__.__version__, os.linesep))
+            return
+        elif arg.startswith('-c'):
+            config_dir = arg[2:]
+        elif arg == '-V':
+            globals()['VERBOSE'] = True
+        elif arg in ['-r', '--report']:
+            build_report = True
+        elif arg in ['-v', '--validate']:
+            do_validation = True
         elif arg in ['?', '/?', '-h', '--help'] or arg.startswith('-'):
-            fatalerror(usage)
+            info(usage)
+            return 0
         elif not infile:
             infile = arg
         elif not outfile:
             outfile = arg
         else:
-            fatalerror(usage)
+            error(usage)
+            return 4
 
     if not infile:
-        fatalerror('No input file specified', usage)
-    elif not os.path.isfile(infile):
-        fatalerror("Invalid input file: '%s'" % infile)
+        error('No input file specified', usage)
+        return 4
 
     infile = os.path.abspath(infile)
-    log("Input %s file: '%s'" % (intype, infile))
+    if not os.path.isfile(infile):
+        error("Invalid input file: '%s'" % infile)
+        return 5
+    info("Input %s file: '%s'" % (intype.upper(), os.path.basename(infile)))
+    logger.debug("Input %s file: '%s'", intype.upper(), infile)
+
+    # Input validation
+    if do_validation or build_report:
+        info("Validating input %s invoice '%s' ..." % (intype.upper(), infile))
+        report = None if build_report else tempfile.mktemp()
+        try:
+            report = build_validation_report(intype, infile, report)
+        except:
+            error(traceback.format_exc(limit=0))
+            return 6
+        ret = int(not bool(report))
+        if report and do_validation:
+            is_valid = parse_validation_report(report)
+            ret = int(not bool(is_valid))
+        if not build_report:
+            os.remove(report)
+        if not outfile:
+            return ret
 
     if not outfile:
-        fatalerror('No output file path specified', usage)
-    elif os.path.isfile(outfile) and not replaceexisting:
-        fatalerror("Output file exist: '%s'\nUse -r to replace existing file" % outfile)
-    elif not os.path.isdir(os.path.dirname(outfile)):
-        fatalerror('Output path is not a valid directory: %s' % outfile)
-
+        error('No output file path specified', usage)
+        return 4
     outfile = os.path.abspath(outfile)
+    if os.path.isfile(outfile) and not replaceexisting:
+        error("Output file exist: '%s'\nUse -R or --replace to replace existing file" % outfile)
+        return 5
+    elif not os.path.isdir(os.path.dirname(outfile)):
+        error('Output path is not a valid directory: %s' % outfile)
+        return 5
 
-    os.environ.setdefault("BOTS_FILE_IN", infile)
-    os.environ.setdefault("BOTS_FILE_OUT", outfile)
+    os.environ["BOTS_FILE_IN"] = infile
+    os.environ["BOTS_FILE_OUT"] = outfile
 
-    config_dir = 'config_ublcii'
     config_arg = '-c%s' % config_dir
 
-    pargs = ['bots-engine']
-    pargs.append(config_arg)
-    pargs.append(route)
+    pargs = ['bots-engine', config_arg, route]
 
     try:
-        proc = subprocess.Popen(pargs, stdout=stdout, stderr=stderr)
+        proc = subprocess.Popen(pargs, stdout=STDOUT, stderr=STDERR)
         stdoutdata, stderrdata = proc.communicate()
-        if verbose:
-            log(stdoutdata.decode())
-            log(stderrdata.decode())
+        if VERBOSE:
+            if not isinstance(stdoutdata, str):
+                stdoutdata = stdoutdata.decode()
+            if not isinstance(stderrdata, str):
+                stderrdata = stderrdata.decode()
+            info(stdoutdata)
+            info(stderrdata)
         returncode = proc.returncode
         if returncode == 0:
-            log("Output %s translated file: '%s'" % (outtype, outfile))
+            info("Output %s file translated: '%s'" % (outtype.upper(), os.path.basename(outfile)))
+            logger.debug("Output %s file translated: '%s'", outtype.upper(), outfile)
+            # Output validation
+            if do_validation or build_report:
+                info("Validating output %s invoice '%s' ..." % (outtype, outfile))
+                report = None if build_report else tempfile.mktemp()
+                try:
+                    report = build_validation_report(outtype, outfile, report)
+                except:
+                    error(traceback.format_exc(limit=0))
+                    return 7
+                if report and do_validation:
+                    is_valid = parse_validation_report(report)
+                    returncode = int(not bool(is_valid))
+                if not build_report:
+                    os.remove(report)
         elif returncode == 3:
             error('Another instance of translator is running, try again in a few moment')
         elif returncode == 2:
             error('ERROR during translating %s file: %s ' % (
-                intype, os.path.basename(outfile)))
+                intype.upper(), os.path.basename(outfile)))
             botsinit.generalinit(config_dir)
             from bots.models import filereport
-            filerep = filereport.objects.filter(infilename=infile).exclude(statust=3).last()
+
+            filerep = filereport.objects.filter(
+                infilename=infile).exclude(statust=3).order_by('-idta').first()
             for err in filerep.errortext.split('MessageError:')[1:]:
-                err = err.rstrip(os.linesep)
-                error('MessageError:%s' % err)
+                err = err.strip().replace(' "BOTSCONTENT"', '').replace('Exception: ', '')
+                error(err)
         elif returncode != 0:
-            fatalerror('Unexpected error %s occured' % returncode,
-                       'proc: %s' % repr(proc.__dict__))
+            error('Unexpected error %s occured' % returncode, 'proc: %s' % repr(proc.__dict__))
+            return returncode
+        del os.environ["BOTS_FILE_IN"]
+        del os.environ["BOTS_FILE_OUT"]
+        return returncode
 
     except Exception as exc:
         error(traceback.format_exc())
-        fatalerror('Exception occured: %s' % exc)
+        del os.environ["BOTS_FILE_IN"]
+        del os.environ["BOTS_FILE_OUT"]
+        error('Exception occured: %s' % exc)
 
 
-def cii2ubl():
-    start('CII_2_UBL', 'cii2ubl')
+def cii2ubl(*args):
+    if args:
+        return start('CII_2_UBL', 'cii2ubl', *args)
+    sys.exit(start('CII_2_UBL', 'cii2ubl'))
 
 
-def ubl2cii():
-    start('UBL_2_CII', 'ubl2cii')
+def ubl2cii(*args):
+    if args:
+        return start('UBL_2_CII', 'ubl2cii', *args)
+    sys.exit(start('UBL_2_CII', 'ubl2cii'))

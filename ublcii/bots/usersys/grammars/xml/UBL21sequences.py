@@ -3,7 +3,7 @@
 from copy import deepcopy
 from bots.botsconfig import ID, MIN, MAX, LEVEL
 
-from .UBL21records import (xmlns, ext, cbc, cac, ccts)
+from .UBL21records import (ext, cbc, cac)
 
 
 sequences = {}

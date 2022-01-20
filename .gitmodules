@@ -1,0 +1,3 @@
+[submodule "ublcii/eInvoicing-EN16931"]
+	path = ublcii/validation/eInvoicing-EN16931
+	url = https://github.com/ConnectingEurope/eInvoicing-EN16931.git

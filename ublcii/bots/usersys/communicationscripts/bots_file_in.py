@@ -18,6 +18,8 @@ def main(channeldict):
         botsglobal.logger.info('BOTS_FILE_IN: %s' % infile)
         if os.path.isfile(infile):
             yield infile
+        else:
+            botsglobal.logger.error('BOTS_FILE_IN not found: %s', infile)
 
 
 def disconnect(channeldict):

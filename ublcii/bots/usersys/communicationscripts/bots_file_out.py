@@ -19,5 +19,5 @@ def filename(channeldict, ta, filename):
 def main(channeldict, filename, ta, *args, **kwargs):
     outfile = os.environ.get("BOTS_FILE_OUT")
     if outfile:
-        botsglobal.logger.info('outfile: %s ...' % outfile)
+        botsglobal.logger.info('outfile: %s' % outfile)
         move(filename, outfile)

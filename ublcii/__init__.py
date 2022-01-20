@@ -23,7 +23,7 @@ __all__ = [
 ]
 
 
-logger = logging.getLogger('ublcii')
+logger = logging.getLogger(__package__)
 
 
 def start_logging(level='INFO'):
@@ -37,8 +37,8 @@ def start_logging(level='INFO'):
     logger.setLevel(logging.getLevelName(os.environ.get('UBLCII_LOG_LEVEL', level)))
 
 
-def log(*args):
-    """Log all input str args to sys.stderr"""
+def info(*args):
+    """Log all input str args"""
     try:
         logger.info(''.join(args))
     except:
@@ -57,14 +57,14 @@ def error(*args):
 def fatalerror(*args):
     """Log error and exit"""
     error(*args)
-    sys.exit(1)
+    raise Exception(' '.join(args))
 
 
 def setupenv(botsenv='_ublcii', **kwargs):
     """Setup bots env"""
 
     start_logging(kwargs.get('loglevel', 'INFO'))
-    log('############# UBLCII SETUP ###############')
+    info('############# UBLCII SETUP ###############')
     devel = kwargs.get('devel')
     install = kwargs.get('install')
     try:
@@ -74,7 +74,7 @@ def setupenv(botsenv='_ublcii', **kwargs):
             return
         raise Exception('Bots is not installed')
 
-    log('Setting up ublcii env ...')
+    info('Setting up ublcii env ...')
     bots_path = os.path.abspath(os.path.dirname(bots.__file__))
     ublcii_path = os.path.abspath(os.path.dirname(__file__))
 
@@ -89,7 +89,7 @@ def setupenv(botsenv='_ublcii', **kwargs):
 
     update_egg_info = kwargs.get('update_egg_info', install or devel)
     additional_files = []
-    pkg = pkg_resources.get_distribution('ublcii')
+    pkg = pkg_resources.get_distribution(__package__)
     bots_pkg = pkg_resources.get_distribution('bots-ediint')
     if hasattr(bots_pkg, 'zipinfo'):
         raise Exception('Zipped bots package is not compatible with ublcii')
@@ -98,30 +98,34 @@ def setupenv(botsenv='_ublcii', **kwargs):
         target = os.path.join(bots_path, '%s%s' % (botsdir, botsenv))
         prefix = os.path.commonprefix([ublcii_path, bots_path])
         if os.path.islink(target):
-            log('remove symlink: %s' % target)
+            info('remove symlink: %s' % target)
             os.unlink(target)
         elif os.path.isdir(target):
-            log('Remove existing directory: %s' % target)
+            info('Remove existing directory: %s' % target)
             shutil.rmtree(target)
         if method == 'symlink' and botsdir != 'botssys':
             if install or devel:
-                origin = os.path.join(os.pardir, 'ublcii', 'bots', botsdir)
+                origin = os.path.join(os.pardir, __package__, 'bots', botsdir)
                 # If ublcii.egg/ublcii
                 if os.path.dirname(os.path.dirname(__file__)).endswith('.egg'):
                     egg_dirname = os.path.dirname(
                         os.path.dirname(__file__)).split(os.path.sep)[-1]
-                    origin = os.path.join(os.pardir, egg_dirname, 'ublcii', 'bots', botsdir)
+                    origin = os.path.join(os.pardir, egg_dirname, __package__, 'bots', botsdir)
                 # If bots.egg/bots
                 if os.path.dirname(os.path.dirname(bots.__file__)).endswith('.egg'):
                     origin = os.path.join(os.pardir, origin)
             elif prefix != os.path.sep:
-                origin = os.path.join(os.pardir, ublcii_path.split(prefix)[1], 'bots', botsdir)
-            log('Symlinking %s to %s' % (origin, target))
+                os.chdir(bots_path)
+                # origin = os.path.join(os.pardir, ublcii_path.split(prefix)[1], 'bots', botsdir)
+                rpath = [os.pardir * len(bots_path.split(prefix)[1].split(os.sep))]
+                rpath += [ublcii_path.split(prefix)[1], 'bots', botsdir]
+                origin = os.path.join(*rpath)
+            info('Symlinking %s to %s' % (origin, target))
             os.symlink(origin, target)
             if update_egg_info:
                 additional_files.append(target.split(prefix)[1])
         elif method == 'copy' or botsdir == 'botssys':
-            log('Copying fixtures files: %s' % origin)
+            info('Copying fixtures files: %s' % origin)
             shutil.copytree(origin, target)
             if botsdir != 'botssys':
                 compileall.compile_dir(target)
@@ -137,14 +141,14 @@ def setupenv(botsenv='_ublcii', **kwargs):
             inst_files = 'RECORD'
         inst_files = os.path.join(pkg.egg_info, inst_files)
         if os.path.isfile(inst_files):
-            log('Updating egg-info/%s' % os.path.basename(inst_files))
+            info('Updating egg-info/%s' % os.path.basename(inst_files))
             with open(inst_files, 'a') as install_f:
                 pat = '%s\r\n'
                 if inst_files.endswith('RECORD'):
                     pat = '%s,,\r\n'
                 install_f.write(''.join(
                     [pat % line for line in additional_files]))
-    log('############# UBLCII SETUP END ###############')
+    info('############# UBLCII SETUP END ###############')
 
 
 def egg_install(loglevel='WARNING'):
