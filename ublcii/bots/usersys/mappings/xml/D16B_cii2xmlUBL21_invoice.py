@@ -102,6 +102,22 @@ def main(inn, out):
 
     for additionalreferenceddocument in inn.getloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'AdditionalReferencedDocument'}):
 
+        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /IssuerAssignedID
+        addrefdocissuerassignedid = additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'IssuerAssignedID', 'BOTSCONTENT': None})
+
+        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /TypeCode
+        adddocreftypecode = additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'TypeCode', 'BOTSCONTENT': None})
+
+        if adddocreftypecode == '50' and addrefdocissuerassignedid:
+            # BT-17
+            # /Invoice /OriginatorDocumentReference
+            originatordocumentreference = out.putloop({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'OriginatorDocumentReference'})
+
+            # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /IssuerAssignedID
+            # +/Invoice /OriginatorDocumentReference /ID
+            originatordocumentreference.put({'BOTSID': cac+'OriginatorDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': addrefdocissuerassignedid})
+            continue
+
         additionaldocumentreference = out.putloop({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'AdditionalDocumentReference'})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /AttachmentBinaryObject
@@ -117,31 +133,16 @@ def main(inn, out):
         additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cac+'Attachment'}, {'BOTSID': cbc+'EmbeddedDocumentBinaryObject', cbc+'EmbeddedDocumentBinaryObject__mimeCode': additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'AttachmentBinaryObject', ram+'AttachmentBinaryObject__mimeCode': None})})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /IssuerAssignedID
-        addrefdocissuerassignedid = additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'IssuerAssignedID', 'BOTSCONTENT': None})
+        # +/Invoice /AdditionalDocumentReference /ID
+        additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': addrefdocissuerassignedid})
 
-        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /TypeCode
-        adddocreftypecode = additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'TypeCode', 'BOTSCONTENT': None})
+        # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /ReferenceTypeCode
+        # +/Invoice /AdditionalDocumentReference /ID /ID__schemeID
+        additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'ID', cbc+'ID__schemeID': additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'ReferenceTypeCode', 'BOTSCONTENT': None})})
 
-        if adddocreftypecode == '50' and addrefdocissuerassignedid:
-            # /Invoice /OriginatorDocumentReference
-            originatordocumentreference = out.putloop({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'OriginatorDocumentReference'})
-
-            # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /IssuerAssignedID
-            # +/Invoice /OriginatorDocumentReference /ID
-            originatordocumentreference.put({'BOTSID': cac+'OriginatorDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': addrefdocissuerassignedid})
-
-        else:
-            # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /IssuerAssignedID
-            # +/Invoice /AdditionalDocumentReference /ID
-            additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': addrefdocissuerassignedid})
-
-            # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /ReferenceTypeCode
-            # +/Invoice /AdditionalDocumentReference /ID /ID__schemeID
-            additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'ID', cbc+'ID__schemeID': additionalreferenceddocument.get({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'ReferenceTypeCode', 'BOTSCONTENT': None})})
-
-            if adddocreftypecode not in [None, '', '916']:
-                # +/Invoice /AdditionalDocumentReference /DocumentTypeCode
-                additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'DocumentTypeCode', 'BOTSCONTENT': adddocreftypecode})
+        if adddocreftypecode not in [None, '', '916']:
+            # +/Invoice /AdditionalDocumentReference /DocumentTypeCode
+            additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'DocumentTypeCode', 'BOTSCONTENT': adddocreftypecode})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /AdditionalReferencedDocument /Name
         # +/Invoice /AdditionalDocumentReference /DocumentDescription

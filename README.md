@@ -37,6 +37,10 @@ https://sourceforge.net/projects/converter-ubl-cii-invoice-xml/support
 
 
 ## Changelog
+
+* v1.1.1: 2022.03.04
+	* [cii2ubl] Fix BT-17: /Invoice /OriginatorDocumentReference /ID
+
 * v1.1.0: 2022.01.20
 	* [ubl2cii] BT-20 = "Avoir" if no BT-9 and no BT-20
 	* Fix for fixed validation bug with [BT-110] TaxAmount
@@ -109,7 +113,6 @@ https://sourceforge.net/projects/converter-ubl-cii-invoice-xml/support
 	* Map cac:DespatchDocumentReference > ram:DespatchAdviceReferencedDocument
 	* Add mappings rules for default currencyID from InvoiceCurrencyCode or 'EUR'
 	* [UBL2CII] New map rule for CII /ProcuringProjectType /Name
-
 
 * v1.0.3 : 2019-07-29 - Fixes and Updates
 	* [CII2UBL] Fixes for /Invoice/Delivery/DeliveryLocation/ID
