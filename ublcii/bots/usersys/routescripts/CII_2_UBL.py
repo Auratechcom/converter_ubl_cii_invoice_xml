@@ -32,8 +32,8 @@ def cii_preprocess(ta_from, endstatus, *args, **kwargs):
         root = doc.getroot()
         if root.tag != '{%s}CrossIndustryInvoice' % namespaces['rsm']:
             raise Exception('Incoming file is not a CrossIndustryInvoice file.')
-        typecode = doc.find('.//rsm:ExchangedDocument/ram:TypeCode', namespaces=namespaces)
-        typecode = typecode.text
+        typecode = getattr(
+            doc.find('.//rsm:ExchangedDocument/ram:TypeCode', namespaces=namespaces), 'text', None)
         botsglobal.logger.debug('CII typecode: %s', typecode)
         # 380=Invoice, 381=Avoir > UBL CreditNote
         if typecode == '381':

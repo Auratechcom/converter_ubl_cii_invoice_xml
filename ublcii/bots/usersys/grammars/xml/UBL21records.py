@@ -3202,7 +3202,7 @@ cbc+'NetWeightMeasure': [
 ],
 cbc+'NetworkID': [
     ['BOTSID', 'M', 256, 'AN'],
-    ['BOTSCONTENT', 'M', 256, 'AN'],
+    ['BOTSCONTENT', 'C', 256, 'AN'],
     [cbc+'NetworkID__schemeID', 'C', 256, 'AN'],
     [cbc+'NetworkID__schemeName', 'C', 256, 'AN'],
     [cbc+'NetworkID__schemeAgencyID', 'C', 256, 'AN'],

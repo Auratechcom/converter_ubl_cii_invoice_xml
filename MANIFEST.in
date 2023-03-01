@@ -1,11 +1,11 @@
 include LICENSE
 include README.md
+include CHANGELOG.md
 
 recursive-include requirements *
 recursive-include ublcii/bots *
 
 include ublcii/java/*.jar
-include ublcii/validation/pom-validate-*.xml
 include ublcii/validation/eInvoicing-EN16931/cii/xslt/*.xslt
 include ublcii/validation/eInvoicing-EN16931/ubl/xslt/*.xslt
 include ublcii/validation/eInvoicing-EN16931/README.md

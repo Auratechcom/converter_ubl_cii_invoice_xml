@@ -4,7 +4,6 @@ from __future__ import unicode_literals
 import errno
 import logging
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -30,22 +29,17 @@ VALIDATION_PATH = os.path.join(__path__[0], 'validation', 'eInvoicing-EN16931')
 
 
 def popen(pargs):
-    """Open a subprocess"""
+    """Open a subprocess.
+    return tuple: returncode:int, stdout:bytes, stderr:bytes|str"""
     try:
         proc = subprocess.Popen(pargs, stdout=STDOUT, stderr=STDERR)
         stdoutdata, stderrdata = proc.communicate()
-        if stdoutdata:
-            if not isinstance(stdoutdata, str):
-                stdoutdata = stdoutdata.decode()
-            info(stdoutdata)
-        if stderrdata and (VERBOSE or proc.returncode != 0):
-            if not isinstance(stderrdata, str):
-                stderrdata = stderrdata.decode()
-            info(stderrdata)
-        return proc.returncode
+        return proc.returncode, stdoutdata, stderrdata
 
     except Exception:
-        error(traceback.format_exc())
+        err = traceback.format_exc()
+        error(err)
+        return 1, b'', err
 
 
 def is_java_installed():
@@ -67,7 +61,7 @@ def saxon_transform(filename, xslt, outfile, **kwargs):
     saxon_he_jar = os.path.join(__path__[0], 'java', 'Saxon-HE.jar')
     if not saxon_he_jar or not os.path.isfile(saxon_he_jar):
         error('Saxon-HE.jar not found, skiping.')
-        return None
+        return -1, None, None
     if not os.path.isfile(filename):
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), filename)
     pargs = [
@@ -85,18 +79,27 @@ def build_validation_report(invoicetype, filename, outfile=None):
         outfile = '%s.report.xml' % filename
     xslt = os.path.join(
         VALIDATION_PATH, invoicetype, 'xslt', 'EN16931-%s-validation.xslt' % invoicetype.upper())
-    ret = saxon_transform(filename, xslt, outfile)
+    ret, out, err = saxon_transform(filename, xslt, outfile)
     if ret == 0:
-        logger.debug("Invoice %s validation report created: '%s'" % (invoicetype.upper(), outfile))
+        logger.debug("Invoice %s validation report created: '%s'", invoicetype.upper(), outfile)
         return outfile
-    fatalerror("durring validation report creation")
+    if isinstance(err, bytes):
+        err = err.decode()
+    if isinstance(out, bytes):
+        out = out.decode()
+    fatalerror("Error (%s) durring validation report creation:\n%s\n%s" % (ret, out, err))
 
 
 def parse_validation_report(validation_report):
     """Parse errors in xml <svrl:schematron-output> files.
     :return boolean
     """
-    doc = etree.parse(validation_report)
+    if isinstance(validation_report, str):
+        doc = etree.parse(validation_report)
+    elif hasattr(validation_report, 'getroot'):
+        doc = validation_report
+    else:
+        raise Exception('Invalid validation_report type.')
     namespaces = {'svrl': 'http://purl.oclc.org/dsdl/svrl'}
     active_patern = doc.find(".//svrl:active-pattern", namespaces)
     document = active_patern.attrib.get('document')
@@ -136,32 +139,6 @@ def parse_validation_report(validation_report):
     info(infos)
     info("Valid %s invoice document: '%s'" % (invoicetype, os.path.basename(filename)))
     return True
-
-
-def mvn_validate(invoicetype, filename):
-    """validate cii/ubl invoice file with maven"""
-    os.environ["VALIDATION_PATH"] = VALIDATION_PATH
-    if invoicetype not in ['ubl', 'cii']:
-        raise Exception('Invalid invoice type: %s' % invoicetype)
-
-    info("Validating %s file: '%s'" % (invoicetype.upper(), os.path.basename(filename)))
-    logger.debug('%s file path: %s', invoicetype.upper(), filename)
-    validation_dir = tempfile.mkdtemp('', 'validation')
-    os.environ["VALIDATION_DIR"] = validation_dir
-
-    # Copy file to validate
-    shutil.copyfile(filename, os.path.join(validation_dir, os.path.basename(filename)))
-
-    pom_file = os.path.join(__path__[0], 'validation', 'pom-validate-%s.xml' % invoicetype)
-    pargs = ['mvn', '-f', pom_file, 'validate']
-    returncode = popen(pargs)
-    if returncode == 0:
-        info("Valid %s invoice document: '%s'" % (invoicetype.upper(), os.path.basename(filename)))
-    else:
-        error("Invalid %s invoice document: '%s'" % (invoicetype.upper(), os.path.basename(filename)))
-
-    shutil.rmtree(validation_dir)
-    return returncode
 
 
 def start(route, prog, *args):
@@ -269,7 +246,7 @@ Author: %(author)s\
     if os.path.isfile(outfile) and not replaceexisting:
         error("Output file exist: '%s'\nUse -R or --replace to replace existing file" % outfile)
         return 5
-    elif not os.path.isdir(os.path.dirname(outfile)):
+    if not os.path.isdir(os.path.dirname(outfile)):
         error('Output path is not a valid directory: %s' % outfile)
         return 5
 

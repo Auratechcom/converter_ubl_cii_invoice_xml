@@ -553,8 +553,23 @@ def main(inn, out):
         customertaxscheme.put({'BOTSID': cac+'PartyTaxScheme'}, {'BOTSID': cac+'TaxScheme'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': 'VAT'})
 
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /SpecifiedProcuringProject /ID
-    # +/Invoice /ProjectReference /ID
-    out.put({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'ProjectReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'SpecifiedProcuringProject'}, {'BOTSID': ram+'ID', 'BOTSCONTENT': None})})
+    specifiedprocuringprojectid = inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'SpecifiedProcuringProject'}, {'BOTSID': ram+'ID', 'BOTSCONTENT': None})
+
+    if specifiedprocuringprojectid:
+        if ubltype == 'Invoice':
+            # +/Invoice /ProjectReference /ID
+            out.put({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'ProjectReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': specifiedprocuringprojectid})
+
+        elif ubltype == 'CreditNote':
+            # + /Invoice /AdditionalDocumentReference
+            additionaldocumentreference = out.putloop({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'AdditionalDocumentReference'})
+
+            # + /Invoice /AdditionalDocumentReference /ID
+            additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': specifiedprocuringprojectid})
+
+            # + /Invoice /AdditionalDocumentReference /DocumentTypeCode
+            # - Fixed: '50'
+            additionaldocumentreference.put({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'DocumentTypeCode', 'BOTSCONTENT': '50'})
 
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ActualDeliverySupplyChainEvent /OccurrenceDateTime /DateTimeString
     # +/Invoice /Delivery /ActualDeliveryDate
@@ -815,7 +830,7 @@ def main(inn, out):
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradePaymentTerms /DueDateDateTime /DateTimeString
     duedate = transformdate(inn.get({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeSettlement'}, {'BOTSID': ram+'SpecifiedTradePaymentTerms'}, {'BOTSID': ram+'DueDateDateTime'}, {'BOTSID': udt+'DateTimeString', 'BOTSCONTENT': None}))
     if ubltype == 'Invoice':
-        # +/Invoice /DueDate
+        # + /Invoice /DueDate
         out.put({'BOTSID': xmlns+ubltype}, {'BOTSID': cbc+'DueDate', 'BOTSCONTENT': duedate})
 
     # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementHeaderMonetarySummation /AllowanceTotalAmount
@@ -870,13 +885,13 @@ def main(inn, out):
 
         paymentmeans = out.putloop({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'PaymentMeans'})
 
+        if ubltype == 'CreditNote' and duedate:
+            # + /Invoice /PaymentMeans /PaymentDueDate
+            paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cbc+'PaymentDueDate', 'BOTSCONTENT': duedate})
+
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /PayerPartyDebtorFinancialAccount /IBANID
         # +/Invoice /PaymentMeans /PaymentMandate /PayerFinancialAccount /ID
         paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'PaymentMandate'}, {'BOTSID': cac+'PayerFinancialAccount'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': specifiedtradesettlementpaymentmeans.get({'BOTSID': ram+'SpecifiedTradeSettlementPaymentMeans'}, {'BOTSID': ram+'PayerPartyDebtorFinancialAccount'}, {'BOTSID': ram+'IBANID', 'BOTSCONTENT': None})})
-
-        # Fixed: 'N/A'
-        # +/Invoice /PaymentMeans /CardAccount /NetworkID
-        # paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'CardAccount'}, {'BOTSID': cbc+'NetworkID', 'BOTSCONTENT': 'N/A'})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /PaymentReference
         # +/Invoice /PaymentMeans /PaymentID
@@ -893,6 +908,11 @@ def main(inn, out):
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /ApplicableTradeSettlementFinancialCard /ID
         # +/Invoice /PaymentMeans /CardAccount /PrimaryAccountNumberID
         paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'CardAccount'}, {'BOTSID': cbc+'PrimaryAccountNumberID', 'BOTSCONTENT': specifiedtradesettlementpaymentmeans.get({'BOTSID': ram+'SpecifiedTradeSettlementPaymentMeans'}, {'BOTSID': ram+'ApplicableTradeSettlementFinancialCard'}, {'BOTSID': ram+'ID', 'BOTSCONTENT': None})})
+
+        if paymentmeans.get({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'CardAccount'}, {'BOTSID': cbc+'PrimaryAccountNumberID', 'BOTSCONTENT': None}):
+            # +/Invoice /PaymentMeans /CardAccount /NetworkID
+            # -/Invoice /PaymentMeans /CardAccount /PrimaryAccountNumberID (First digit)
+            paymentmeans.put({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'CardAccount'}, {'BOTSID': cbc+'NetworkID', 'BOTSCONTENT': paymentmeans.get({'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cac+'CardAccount'}, {'BOTSID': cbc+'PrimaryAccountNumberID', 'BOTSCONTENT': None})[0]})
 
         # -/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradeSettlementPaymentMeans /TypeCode
         # +/Invoice /PaymentMeans /PaymentMeansCode

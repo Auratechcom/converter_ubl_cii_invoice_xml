@@ -145,7 +145,15 @@ def main(inn, out):
             # Fixed: '50'
             additionalreferenceddocument.put({'BOTSID': ram+'AdditionalReferencedDocument'}, {'BOTSID': ram+'TypeCode', 'BOTSCONTENT': '50'})
 
+    projectreferenceid = None
+
     for additionaldocumentreference in inn.getloop({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'AdditionalDocumentReference'}):
+
+        documenttypecode = additionaldocumentreference.get({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'DocumentTypeCode', 'BOTSCONTENT': None})
+        if documenttypecode == '50':
+            # - /Invoice /AdditionalDocumentReference /ID
+            projectreferenceid = additionaldocumentreference.get({'BOTSID': cac+'AdditionalDocumentReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': None})
+            continue
 
         additionalreferenceddocument = out.putloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'AdditionalReferencedDocument'})
 
@@ -600,19 +608,23 @@ def main(inn, out):
         # Fixed:'VA'
         buyertaxregistration.put({'BOTSID': ram+'SpecifiedTaxRegistration'}, {'BOTSID': ram+'ID', ram+'ID__schemeID': 'VA'})
 
-    # - Invoice /ProjectReference /ID
-    projectreferenceid = inn.get({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'ProjectReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': None})
+    if ubltype == 'Invoice':
+        # - /Invoice /ProjectReference /ID
+        projectreferenceid = inn.get({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'ProjectReference'}, {'BOTSID': cbc+'ID', 'BOTSCONTENT': None})
 
     if projectreferenceid:
-        # + CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /SpecifiedProcuringProject /ID
-        # - Invoice /ProjectReference /ID
+        # + /CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /SpecifiedProcuringProject /ID
+        # - /Invoice /ProjectReference /ID
+        # - /CreditNote /AdditionalDocumentReference /ID
         out.put({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'SpecifiedProcuringProject'}, {'BOTSID': ram+'ID', 'BOTSCONTENT': projectreferenceid})
 
-        # + CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /SpecifiedProcuringProject /Name
-        # Fixed: 'Project reference'
+        # + /CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeAgreement /SpecifiedProcuringProject /Name
+        # - Fixed: 'Project reference'
         out.put({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeAgreement'}, {'BOTSID': ram+'SpecifiedProcuringProject'}, {'BOTSID': ram+'Name', 'BOTSCONTENT': 'Project reference'})
 
+
     applicableheadertradedelivery = out.putloop({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeDelivery'})
+
     # -/Invoice /Delivery /ActualDeliveryDate
     # +/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeDelivery /ActualDeliverySupplyChainEvent /OccurrenceDateTime /DateTimeString
     applicableheadertradedelivery.put({'BOTSID': ram+'ApplicableHeaderTradeDelivery'}, {'BOTSID': ram+'ActualDeliverySupplyChainEvent'}, {'BOTSID': ram+'OccurrenceDateTime'}, {'BOTSID': udt+'DateTimeString', udt+'DateTimeString__format': dtf, 'BOTSCONTENT': transformdate(inn.get({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'Delivery'}, {'BOTSID': cbc+'ActualDeliveryDate', 'BOTSCONTENT': None}))})
@@ -928,8 +940,14 @@ def main(inn, out):
             # +/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradePaymentTerms /Description
             description3.put({'BOTSID': ram+'Description', 'BOTSCONTENT': paymenttermsnote})
 
-    # -/Invoice /DueDate
-    duedate = transformdate(inn.get({'BOTSID': xmlns+ubltype}, {'BOTSID': cbc+'DueDate', 'BOTSCONTENT': None}))
+    duedate = None
+    if ubltype == 'Invoice':
+        # - /Invoice /DueDate
+        duedate = transformdate(inn.get({'BOTSID': xmlns+ubltype}, {'BOTSID': cbc+'DueDate', 'BOTSCONTENT': None}))
+    elif ubltype == 'CreditNote':
+        # - /CreditNote /PaymentMeans /PaymentDueDate
+        duedate = transformdate(inn.get({'BOTSID': xmlns+ubltype}, {'BOTSID': cac+'PaymentMeans'}, {'BOTSID': cbc+'PaymentDueDate', 'BOTSCONTENT': None}))
+
     # +/CrossIndustryInvoice /SupplyChainTradeTransaction /ApplicableHeaderTradeSettlement /SpecifiedTradePaymentTerms /DueDateDateTime /DateTimeString
     out.put({'BOTSID': rsm+'CrossIndustryInvoice'}, {'BOTSID': rsm+'SupplyChainTradeTransaction'}, {'BOTSID': ram+'ApplicableHeaderTradeSettlement'}, {'BOTSID': ram+'SpecifiedTradePaymentTerms'}, {'BOTSID': ram+'DueDateDateTime'}, {'BOTSID': udt+'DateTimeString', udt+'DateTimeString__format': dtf, 'BOTSCONTENT': duedate})
 

@@ -18,7 +18,7 @@ __all__ = [
     '__version__', '__version_info__',
     '__title__', '__summary__', '__url__',
     '__author__', '__email__', '__license__', '__copyright__',
-    'log', 'error', 'fatalerror', 'start_logging',
+    'logger', 'error', 'fatalerror', 'start_logging',
     'setupenv', 'egg_install', 'clean',
 ]
 
